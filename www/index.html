@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#12294b">
-<title>Pagomóvil Express</title>
+<title>RectiPagos</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
@@ -12,7 +12,8 @@
     --bar:#12294b; --bg:#f1f3f6; --card:#ffffff; --line:#e3e7ee;
     --text:#1c2430; --muted:#67748a; --primary:#1d4ed8; --primary-tap:#1739a8;
     --green:#15803d; --good:#dcf0e2; --danger:#b91c1c;
-    radius:14px;
+    --input-bg:#ffffff; --chip-bg:#ffffff;
+    --radius:14px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -45,8 +46,8 @@
 
   label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px;}
   input,select{
-    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
-    background:#fff;color:var(--text);font-size:16px;outline:none;
+    width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;
+    background:var(--input-bg);color:var(--text);font-size:16px;outline:none;
   }
   input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 2px #1d4ed822;}
   .row{display:flex;gap:10px;}
@@ -55,19 +56,29 @@
   /* montos */
   .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
   .chip{
-    padding:10px 0;text-align:center;background:#fff;border:1px solid var(--line);
+    padding:12px 0;text-align:center;background:var(--chip-bg);border:1px solid var(--line);
     border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;color:var(--text);
   }
   .chip:active{border-color:var(--primary);color:var(--primary);}
 
   .monto-display{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px;}
-  .monto-display .big{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .monto-display .big{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;}
   .monto-display .small{font-size:12.5px;color:var(--muted);text-align:right;}
 
   /* tasa BCV */
   .tasa-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);}
   .tasa-row b{color:var(--text);font-variant-numeric:tabular-nums;}
   .tasa-row a{color:var(--primary);cursor:pointer;font-weight:600;white-space:nowrap;}
+
+  /* selector de banco (abre la lista nativa) */
+  .bank-btn{
+    width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;
+    background:var(--input-bg);color:var(--text);font-size:16px;text-align:left;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    cursor:pointer;font-family:inherit;
+  }
+  .bank-btn:active{border-color:var(--primary);}
+  .bank-btn .chev{color:var(--muted);font-size:22px;line-height:1;}
 
   /* botones */
   .btn{
@@ -79,8 +90,8 @@
   .btn.primary:active{background:#166534;}
   .btn.secondary{background:#eef2f7;color:var(--text);}
   .btn.secondary:active{background:#e2e8f0;}
-  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--text);}
-  .btn.danger-line{background:#fff;border:1px solid #f3c1c1;color:var(--danger);}
+  .btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--text);}
+  .btn.danger-line{background:var(--card);border:1px solid #f3c1c1;color:var(--danger);}
 
   .msg-box{
     background:#f7f9fb;border:1px solid var(--line);border-radius:10px;
@@ -115,7 +126,7 @@
 
   /* lock */
   #lock{max-width:480px;margin:0 auto;padding:0 20px;}
-  .lock-wrap{margin-top:18vh;text-align:center;}
+  .lock-wrap{margin-top:16vh;text-align:center;}
   .lock-logo{
     width:64px;height:64px;border-radius:16px;background:var(--bar);color:#fff;
     display:inline-flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;margin-bottom:14px;
@@ -131,6 +142,48 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .page{display:none}.page.on{display:block}
+
+  /* lista nativa de bancos (bottom-sheet) */
+  .sheet-back{position:fixed;inset:0;background:rgba(5,10,25,.5);z-index:50;display:none;align-items:flex-end;justify-content:center;}
+  .sheet-back.on{display:flex;}
+  .sheet{
+    background:var(--card);width:100%;max-width:480px;max-height:78vh;
+    border-radius:20px 20px 0 0;
+    padding:8px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;animation:sheetUp .22s ease;
+  }
+  @keyframes sheetUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+  .sheet-handle{width:40px;height:5px;border-radius:3px;background:var(--line);margin:2px auto 10px;}
+  .sheet-title{font-weight:700;font-size:16px;margin-bottom:8px;}
+  .sheet-search{margin-bottom:6px;}
+  .sheet-list{overflow:auto;}
+  .sheet-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 4px;border-bottom:1px solid var(--line);cursor:pointer;font-size:15px;}
+  .sheet-row:last-child{border-bottom:none;}
+  .sheet-row .code{color:var(--muted);font-variant-numeric:tabular-nums;}
+  .sheet-row.sel{color:var(--primary);font-weight:600;}
+
+  /* QR */
+  #qrVideo{width:100%;border-radius:10px;background:#000;display:block;}
+
+  /* adaptable: pantallas angostas */
+  @media (max-width:360px){
+    .monto-display .big{font-size:24px;}
+    .chips{grid-template-columns:repeat(2,1fr);}
+  }
+
+  /* modo oscuro según el sistema */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d1424; --card:#16203a; --line:#26344f;
+      --text:#e9eef7; --muted:#93a1bb; --primary:#7ea6ff; --primary-tap:#9dbfff;
+      --green:#3ddc74; --good:#12351f; --danger:#ff6b6b;
+      --input-bg:#1d2a47; --chip-bg:#1d2a47;
+    }
+    .btn.secondary{background:#22304e;color:var(--text);}
+    .btn.secondary:active{background:#2a3a5c;}
+    .msg-box{background:#101a30;color:#c7d2e4;}
+    .toast{background:#e9eef7;color:#16203a;}
+  }
 </style>
 </head>
 <body>
@@ -138,18 +191,19 @@
 <!-- Pantalla de PIN -->
 <div id="lock">
   <div class="lock-wrap">
-    <div class="lock-logo">Px</div>
-    <h1 class="lock-title">Pagomóvil Express</h1>
+    <div class="lock-logo">Rp</div>
+    <h1 class="lock-title">RectiPagos</h1>
     <p class="lock-sub" id="lockHint">Introduce tu PIN de seguridad</p>
     <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
     <button class="btn primary" onclick="unlock()">Entrar</button>
     <button id="bioEntryBtn" class="btn ghost" style="display:none" onclick="bioEntry()">Entrar con huella</button>
+    <button class="btn danger-line" style="margin-top:22px" onclick="wipeFromLock()">Borrar todos los datos</button>
   </div>
 </div>
 
 <div id="app" style="display:none">
 <div class="bar">
-  <span class="t">Pagomóvil Express</span>
+  <span class="t">RectiPagos</span>
   <span class="r" id="clock"></span>
 </div>
 <main>
@@ -169,7 +223,8 @@
     </div>
 
     <label>Banco del comercio (destino)</label>
-    <select id="bancoDestino"></select>
+    <button class="bank-btn" id="bancoDestinoBtn" onclick="openBankSheet('dest')"><span>Seleccionar banco</span><span class="chev">›</span></button>
+    <select id="bancoDestino" style="display:none"></select>
 
     <div class="monto-display">
       <span class="big" id="bigMonto">0,00</span>
@@ -182,6 +237,25 @@
     </div>
 
     <button class="btn primary" onclick="generarPago()">Preparar pago móvil</button>
+  </div>
+
+  <div class="card">
+    <div class="sec-t">Leer QR del comercio</div>
+    <div class="note" style="margin-top:0">Escanea el QR con los datos del banco y se llenan solos el banco destino y el monto.</div>
+    <div class="row">
+      <button class="btn ghost" id="qrCamBtn" onclick="startQRScan()">Escanear con cámara</button>
+      <button class="btn ghost" id="qrImgBtn" onclick="qrFile.click()">Elegir imagen</button>
+    </div>
+    <input type="file" id="qrFile" accept="image/*" style="display:none" onchange="qrFromFile(this)">
+    <div id="qrCamWrap" style="display:none;margin-top:10px">
+      <video id="qrVideo" playsinline muted></video>
+      <div class="note" style="text-align:center">Apunta al QR para leerlo</div>
+      <button class="btn danger-line" onclick="stopQRScan()">Cancelar escaneo</button>
+    </div>
+    <label>O pega aquí el texto del QR</label>
+    <input id="qrText" placeholder="Pega el contenido del QR" autocomplete="off">
+    <button class="btn secondary" onclick="qrFromText()">Usar estos datos</button>
+    <div id="qrNote" class="note"></div>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
@@ -206,7 +280,8 @@
     <label>Cédula o RIF</label>
     <input id="f_ci" placeholder="V12345678" onchange="saveProfile()" autocomplete="off">
     <label>Tu banco</label>
-    <select id="f_banco" onchange="saveProfile()"></select>
+    <button class="bank-btn" id="f_bancoBtn" onclick="openBankSheet('perfil')"><span>Seleccionar banco</span><span class="chev">›</span></button>
+    <select id="f_banco" style="display:none" onchange="saveProfile()"></select>
     <label>Teléfono (pago móvil)</label>
     <input id="f_tel" placeholder="04121234567" inputmode="tel" onchange="saveProfile()" autocomplete="off">
     <label>Número de cuenta</label>
@@ -237,7 +312,6 @@
   </div>
 </section>
 
-
 </main>
 
 <nav>
@@ -251,8 +325,19 @@
   </button>
 </nav>
 </div>
-<div class="toast" id="toast"></div>
 
+<!-- Lista nativa de bancos -->
+<div class="sheet-back" id="sheetBack" onclick="if(event.target===sheetBack) closeBankSheet()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Elige el banco</div>
+    <input class="sheet-search" id="sheetSearch" placeholder="Buscar banco o código" autocomplete="off" oninput="renderBankList(this.value)">
+    <div class="sheet-list" id="sheetList"></div>
+    <button class="btn ghost" onclick="closeBankSheet()">Cerrar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 <script>
 /* ====== Bancos (código de 4 dígitos) ====== */
 const BANCOS = {
@@ -276,7 +361,11 @@ async function keyFromPin(pin, salt){
 }
 
 let KEY = null, profile = null;
-let history = JSON.parse(localStorage.getItem("px_hist") || "[]");
+let history = [];
+try {
+  history = JSON.parse(localStorage.getItem("px_hist") || "[]");
+  if(!Array.isArray(history)) history = [];
+} catch(e){ history = []; }
 
 /* ====== Biometría nativa (solo en el APK) ====== */
 function bioPlugin(){
@@ -303,7 +392,7 @@ async function bioUnlock(){
   const blob = localStorage.getItem(BIO_KEY);
   if(!blob) return null;
   const res = await p.unlock({ blob });
-  return res.payload; // { pin }
+  return res.payload; // { pin } como texto JSON
 }
 
 async function bioProtect(pin){
@@ -366,8 +455,14 @@ async function unlock(pinArg){
   const blob = localStorage.getItem("px_vault");
   try{
     if(blob){
-      const v = JSON.parse(blob);
-      if(!v.data) throw 0;
+      let v = null;
+      try { v = JSON.parse(blob); } catch(e){ v = null; }
+      if(!v || !v.data){
+        if(pinArg != null){ toast("La huella no pudo abrir, usa tu PIN"); return; }
+        toast("Datos guardados dañados. Pulsa Borrar todos los datos abajo y empieza de nuevo.");
+        pinInput.value = "";
+        return;
+      }
       const plain = await crypto.subtle.decrypt(
         {name:"AES-GCM", iv:unb64(v.iv)}, await keyFromPin(pin, v.salt), unb64(v.data));
       profile = JSON.parse(dec.decode(plain));
@@ -394,8 +489,8 @@ async function bioEntry(){
   try {
     const payload = await bioUnlock();
     if(!payload){ b.disabled = false; return; }
-    const pin = JSON.parse(payload).pin;
-    await unlock(pin);
+    const obj = typeof payload === "string" ? JSON.parse(payload) : payload;
+    await unlock(obj.pin);
   } catch(e){
     if(e && /clave_invalida/.test(e.message || "")){
       // se registró una huella nueva: la clave vieja murió, hay que reactivar
@@ -433,6 +528,11 @@ function loadBanks(sel, val){
     Object.entries(BANCOS).map(([c,n])=>`<option value="${c}">${n} (${c})</option>`).join("");
   if(val) sel.value = val;
 }
+function bankLabel(code){ return code && BANCOS[code] ? `${BANCOS[code]} (${code})` : "Seleccionar banco"; }
+function renderBankLabels(){
+  bancoDestinoBtn.innerHTML = `<span>${bankLabel(bancoDestino.value)}</span><span class="chev">›</span>`;
+  f_bancoBtn.innerHTML = `<span>${bankLabel(f_banco.value)}</span><span class="chev">›</span>`;
+}
 function fmt(n){ return (Math.round(n*100)/100).toLocaleString("es-VE",{minimumFractionDigits:2, maximumFractionDigits:2}); }
 
 function loadUI(){
@@ -443,6 +543,7 @@ function loadUI(){
   f_cuenta.value = profile.f_cuenta||"";
   f_card.value = profile.f_card||"";
   f_tasa.value = profile.f_tasa||"";
+  renderBankLabels();
   renderHist();
   refreshMonto();
   renderTasa();
@@ -456,7 +557,7 @@ function saveProfile(){
     // si la tasa no cambió, se conserva su fecha de actualización; si la escribiste a mano, pasa a ser manual
     f_tasa_fecha: (nuevaTasa === prev.f_tasa ? (prev.f_tasa_fecha||"") : "")
   };
-  persist(); refreshMonto(); renderTasa(); toast("Guardado");
+  persist(); refreshMonto(); renderTasa(); renderBankLabels(); toast("Guardado");
 }
 function refreshMonto(){
   const m = parseFloat(monto.value)||0;
@@ -465,6 +566,37 @@ function refreshMonto(){
   usdView.textContent = m>0 ? (tasa>0 ? "≈ $"+fmt(m/tasa) : "Configura la tasa en Mi perfil") : "—";
 }
 monto.addEventListener("input", refreshMonto);
+document.querySelectorAll("[data-add]").forEach(b=>{
+  b.onclick = ()=>{
+    monto.value = ((parseFloat(monto.value)||0) + parseFloat(b.dataset.add)).toFixed(2);
+    refreshMonto();
+  };
+});
+
+/* ====== Lista nativa de bancos ====== */
+let sheetKind = null; // 'dest' | 'perfil'
+function openBankSheet(kind){
+  sheetKind = kind;
+  sheetSearch.value = "";
+  renderBankList("");
+  sheetBack.classList.add("on");
+  setTimeout(()=>sheetSearch.focus(), 60);
+}
+function closeBankSheet(){ sheetBack.classList.remove("on"); }
+function renderBankList(q){
+  const sel = sheetKind === 'perfil' ? f_banco.value : bancoDestino.value;
+  const query = (q||"").toLowerCase();
+  const rows = Object.entries(BANCOS).filter(([c,n]) => !query || n.toLowerCase().includes(query) || c.includes(query));
+  sheetList.innerHTML = rows.length ? rows.map(([c,n]) =>
+    `<div class="sheet-row${c===sel ? ' sel' : ''}" onclick="selectBank('${c}')"><span>${n}</span><span class="code">${c}</span></div>`).join("")
+    : '<div class="hist-empty">Sin resultados.</div>';
+}
+function selectBank(code){
+  if(sheetKind === 'perfil'){ f_banco.value = code; saveProfile(); }
+  else { bancoDestino.value = code; localStorage.setItem("px_lastDest", code); }
+  renderBankLabels();
+  closeBankSheet();
+}
 
 /* ====== Tasa BCV (actualización manual) ====== */
 /* La tasa oficial del BCV no tiene API pública y su web bloquea consultas
@@ -473,15 +605,26 @@ monto.addEventListener("input", refreshMonto);
 function renderTasa(){
   const tasa = parseFloat(profile?.f_tasa)||0;
   const fecha = profile?.f_tasa_fecha || "";
-  const fechaCorta = fecha ? new Date(fecha).toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "";
+  const fechaMs = fecha ? Date.parse(fecha) : NaN;
+  const fechaCorta = !isNaN(fechaMs) ? new Date(fechaMs).toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "";
   const lbl = document.getElementById("tasaLabel");
   if(lbl) lbl.innerHTML = tasa>0 ? `Tasa BCV: <b>${fmt(tasa)} Bs/$</b>${fechaCorta ? " · " + fechaCorta : ""}` : "Tasa BCV: —";
   const info = document.getElementById("tasaInfo");
   if(info){
-    info.textContent = (tasa>0 && fecha)
+    info.textContent = (tasa>0 && fechaCorta)
       ? `Tasa oficial BCV: ${fmt(tasa)} Bs/$. Actualizada el ${fechaCorta}. Fuente: tasa oficial publicada por el BCV.`
       : "Puedes escribir la tasa a mano o pulsar «Actualizar» para traer la oficial del BCV del día.";
   }
+}
+
+async function fetchJSONTimeout(url, ms){
+  const ctrl = new AbortController();
+  const to = setTimeout(()=>ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, {signal: ctrl.signal});
+    if(!r.ok) return null;
+    return await r.json();
+  } catch(e){ return null; } finally { clearTimeout(to); }
 }
 
 async function actualizarTasaBCV(){
@@ -499,13 +642,12 @@ async function actualizarTasaBCV(){
   ];
   let ok = null;
   for(const f of fuentes){
-    try{
-      const r = await fetch(f.url);
-      if(!r.ok) continue;
-      const d = await r.json();
+    const d = await fetchJSONTimeout(f.url, 10000);
+    if(!d) continue;
+    try {
       const v = f.leer(d);
       if(isFinite(v.tasa) && v.tasa > 0){ ok = v; break; }
-    }catch(e){ /* siguiente fuente */ }
+    } catch(e){ /* siguiente fuente */ }
   }
   if(ok){
     f_tasa.value = ok.tasa;
@@ -521,32 +663,39 @@ async function actualizarTasaBCV(){
   if(btn) btn.disabled = false;
 }
 
-document.querySelectorAll("[data-add]").forEach(b=>{
-  b.onclick = ()=>{
-    monto.value = ((parseFloat(monto.value)||0) + parseFloat(b.dataset.add)).toFixed(2);
-    refreshMonto();
-  };
-});
-
 async function generarPago(){
   const m = parseFloat(monto.value);
   const dest = bancoDestino.value;
   if(!m||m<=0){ toast("Introduce un monto"); monto.focus(); return; }
-  if(!dest){ toast("Selecciona el banco del comercio"); bancoDestino.focus(); return; }
+  if(!dest){ toast("Selecciona el banco del comercio"); openBankSheet('dest'); return; }
   if(!profile?.f_ci || !profile?.f_tel || !profile?.f_banco){
-    toast("Completa tu perfil primero");
+    // red de seguridad: si el perfil en memoria quedó desactualizado,
+    // releerlo de los campos de la pantalla antes de rendirse
+    profile = {
+      f_ci:f_ci.value.trim(), f_banco:f_banco.value, f_tel:f_tel.value.trim(),
+      f_cuenta:f_cuenta.value.replace(/\s/g,""), f_card:f_card.value.trim(), f_tasa:f_tasa.value,
+      f_tasa_fecha: profile?.f_tasa_fecha||""
+    };
+    persist();
+  }
+  if(!profile?.f_ci || !profile?.f_tel || !profile?.f_banco){
+    const faltan = [];
+    if(!profile?.f_ci) faltan.push("cédula");
+    if(!profile?.f_tel) faltan.push("teléfono");
+    if(!profile?.f_banco) faltan.push("banco");
+    toast("Falta en tu perfil: " + faltan.join(", "));
     document.querySelector('[data-page="page-perfil"]').click();
     return;
   }
   localStorage.setItem("px_lastDest", dest);
   resMonto.textContent = fmt(m)+" Bs";
-  resNota.textContent = `De ${BANCOS[profile.f_banco]} hacia ${BANCOS[dest]}`;
+  resNota.textContent = `De ${BANCOS[profile.f_banco]||"tu banco"} hacia ${BANCOS[dest]||""}`;
   msgPago.textContent =
 `PAGO MOVIL
 CI: ${profile.f_ci}
-BANCO ORIGEN: ${profile.f_banco} - ${BANCOS[profile.f_banco]}
+BANCO ORIGEN: ${profile.f_banco} - ${BANCOS[profile.f_banco]||""}
 TELEFONO: ${perfilTelFmt(profile.f_tel)}
-BANCO DESTINO: ${dest} - ${BANCOS[dest]}
+BANCO DESTINO: ${dest} - ${BANCOS[dest]||""}
 MONTO: ${fmt(m)} Bs.`;
   resultCard.style.display = "block";
   resultCard.scrollIntoView({behavior:"smooth"});
@@ -557,10 +706,22 @@ MONTO: ${fmt(m)} Bs.`;
 }
 function perfilTelFmt(t){ return t.length===11 ? `${t.slice(0,4)} ${t.slice(4)}` : t; }
 function clearAmt(){ monto.value=""; refreshMonto(); resultCard.style.display="none"; window.scrollTo({top:0,behavior:"smooth"}); }
-function copyMsg(){ navigator.clipboard.writeText(msgPago.textContent); toast("Mensaje copiado"); }
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch(e){
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove(); return ok;
+    } catch(e2){ return false; }
+  }
+}
+function copyMsg(){ copyText(msgPago.textContent).then(ok => toast(ok ? "Mensaje copiado" : "No se pudo copiar")); }
 async function shareMsg(){
-  if(navigator.share){ try{ await navigator.share({text:msgPago.textContent}); }catch(e){} }
-  else copyMsg();
+  if(navigator.share){ try{ await navigator.share({text:msgPago.textContent}); return; }catch(e){} }
+  copyMsg();
 }
 function renderHist(){
   hist.innerHTML = history.length ? "" : '<div class="hist-empty">Aún no hay pagos registrados.</div>';
@@ -574,7 +735,7 @@ function renderHist(){
   });
 }
 function clearHist(){ history=[]; localStorage.removeItem("px_hist"); renderHist(); toast("Historial vaciado"); }
-function copyField(id){ const v=document.getElementById(id).value; if(!v){toast("El campo está vacío");return;} navigator.clipboard.writeText(v); toast("Copiado"); }
+function copyField(id){ const v=document.getElementById(id).value; if(!v){toast("El campo está vacío");return;} copyText(v).then(ok => toast(ok ? "Copiado" : "No se pudo copiar")); }
 function changePin(){
   const n = prompt("Nuevo PIN (4-8 dígitos):");
   if(n && /^\d{4,8}$/.test(n)){
@@ -590,6 +751,149 @@ function wipeAll(){
   if(confirm("¿Borrar todos los datos de esta app? Esta acción no se puede deshacer.")){
     localStorage.clear(); location.reload();
   }
+}
+function wipeFromLock(){
+  if(confirm("¿Borrar todos los datos de esta app? Esta acción no se puede deshacer.")){
+    localStorage.clear(); location.reload();
+  }
+}
+
+/* ====== Leer QR de datos de banco ====== */
+/* El QR del comercio trae sus datos (banco destino y monto, a veces teléfono
+   y CI). Se lee con la cámara o desde una imagen cuando el teléfono lo
+   soporta; si no, se pega el texto y se interpreta igual. Los datos del QR
+   nunca tocan tu perfil: solo llenan el pago que vas a generar. */
+let qrDetector = null, qrStream = null, qrRAF = 0, qrScanning = false;
+function setupQR(){
+  try { qrDetector = ("BarcodeDetector" in window) ? new BarcodeDetector({formats:["qr_code"]}) : null; }
+  catch(e){ qrDetector = null; }
+  const camOK = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if(!qrDetector){
+    qrNote.textContent = "Este teléfono no soporta lectura automática de QR: usa la opción de pegar el texto abajo.";
+    qrCamBtn.style.display = "none";
+    qrImgBtn.style.display = "none";
+  } else if(!camOK){
+    qrCamBtn.style.display = "none";
+  }
+}
+async function detectQR(source){
+  if(!qrDetector) return null;
+  try {
+    const codes = await qrDetector.detect(source);
+    if(codes && codes.length) return codes[0].rawValue || "";
+  } catch(e){}
+  return null;
+}
+async function startQRScan(){
+  if(!qrDetector){ toast("Lectura de QR no disponible aquí"); return; }
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  } catch(e){ toast("No se pudo abrir la cámara. Elige una imagen o pega el texto."); return; }
+  qrCamWrap.style.display = "block";
+  qrVideo.srcObject = qrStream;
+  await qrVideo.play().catch(()=>{});
+  qrScanning = true;
+  const loop = async ()=>{
+    if(!qrScanning) return;
+    const val = await detectQR(qrVideo);
+    if(val){ stopQRScan(); applyQR(val); return; }
+    qrRAF = requestAnimationFrame(()=>setTimeout(loop, 300));
+  };
+  loop();
+}
+function stopQRScan(){
+  qrScanning = false;
+  cancelAnimationFrame(qrRAF);
+  if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream = null; }
+  qrVideo.srcObject = null;
+  qrCamWrap.style.display = "none";
+}
+async function qrFromFile(input){
+  const file = input.files && input.files[0];
+  input.value = "";
+  if(!file) return;
+  try {
+    const bmp = await createImageBitmap(file);
+    const val = await detectQR(bmp);
+    if(val) applyQR(val); else toast("No se encontró un QR en esa imagen");
+  } catch(e){ toast("No se pudo leer esa imagen"); }
+}
+function qrFromText(){
+  const t = qrText.value.trim();
+  if(!t){ toast("Pega primero el texto del QR"); return; }
+  applyQR(t);
+}
+function normBanco(v){
+  const s = String(v||"").trim();
+  if(/^\d{4}$/.test(s) && BANCOS[s]) return s;
+  const low = s.toLowerCase();
+  for(const [c,n] of Object.entries(BANCOS)){
+    const nl = n.toLowerCase();
+    if(nl === low || nl.replace(/^banco /,"") === low) return c;
+  }
+  for(const [c,n] of Object.entries(BANCOS)){
+    const nl = n.toLowerCase();
+    if(low.length >= 5 && (nl.includes(low) || low.includes(nl))) return c;
+  }
+  return "";
+}
+function normTel(v){
+  const d = String(v||"").replace(/\D/g,"");
+  return d.length === 11 ? d : (d.length === 10 && d.startsWith("4") ? "0"+d : "");
+}
+function normMonto(v){
+  if(v == null) return "";
+  if(typeof v === "number") return v > 0 ? v : "";
+  let s = String(v).replace(/Bs\.?/gi,"").trim();
+  if(s.includes(",")){ s = s.replace(/\./g,"").replace(",","."); }
+  const n = parseFloat(s);
+  return isFinite(n) && n > 0 ? n : "";
+}
+function parseQR(text){
+  const out = {};
+  try {
+    const j = JSON.parse(text);
+    if(j && typeof j === "object"){
+      out.banco = normBanco(j.banco ?? j.bank ?? j.codigoBanco ?? j.codigo_banco ?? j.destino ?? "");
+      out.telefono = normTel(j.telefono ?? j.phone ?? j.tel ?? "");
+      out.ci = String(j.ci ?? j.cedula ?? j.id ?? "").trim();
+      out.monto = normMonto(j.monto ?? j.amount ?? j.total ?? "");
+      return out;
+    }
+  } catch(e){}
+  const mBanco = text.match(/BANCO DESTINO:\s*(\d{4})/i);
+  if(mBanco) out.banco = mBanco[1];
+  const mTel = text.match(/TELEFONO:\s*([0-9 ]{7,15})/i);
+  if(mTel) out.telefono = normTel(mTel[1]);
+  const mCi = text.match(/CI:\s*([VEPJvepj]-?\d{6,9})/i);
+  if(mCi) out.ci = mCi[1].toUpperCase();
+  const mMonto = text.match(/MONTO:\s*([\d.,]+)/i);
+  if(mMonto) out.monto = normMonto(mMonto[1]);
+  if(!out.banco){
+    const codes = text.match(/\b\d{4}\b/g) || [];
+    const hit = codes.find(c => BANCOS[c]);
+    if(hit) out.banco = hit;
+  }
+  if(!out.telefono){
+    const t = text.match(/0?4\d{2}[\s-]?\d{7}/);
+    if(t) out.telefono = normTel(t[0]);
+  }
+  if(!out.monto){
+    const m = text.match(/monto[^0-9]{0,5}([\d.,]+)/i);
+    if(m) out.monto = normMonto(m[1]);
+  }
+  return out;
+}
+function applyQR(text){
+  const d = parseQR(text);
+  const partes = [];
+  if(d.banco){ bancoDestino.value = d.banco; localStorage.setItem("px_lastDest", d.banco); renderBankLabels(); partes.push(BANCOS[d.banco]); }
+  if(d.monto){ monto.value = d.monto; refreshMonto(); partes.push(fmt(d.monto)+" Bs"); }
+  if(d.telefono || d.ci){
+    qrNote.textContent = "QR leído" + (d.telefono ? " · Teléfono: " + d.telefono : "") + (d.ci ? " · CI: " + d.ci : "") + ". Revisa los datos antes de generar el pago.";
+  } else { qrNote.textContent = ""; }
+  if(partes.length){ toast("QR aplicado: " + partes.join(" · ")); }
+  else { toast("El QR no trae datos de banco reconocibles"); qrNote.textContent = "No se reconoció banco ni monto en ese QR. Puedes escribir los datos a mano."; }
 }
 
 /* Navegación */
@@ -613,6 +917,7 @@ if(location.hash.startsWith("#m=")){ monto.value = decodeURIComponent(location.h
 
 pinInput.addEventListener("keydown", e=>{ if(e.key==="Enter") unlock(); });
 setupBioEntry(); // muestra el botón de huella en el candado si ya estaba activada
+setupQR(); // adapta el apartado QR a lo que soporta este teléfono
 document.body.addEventListener("submit", e=>e.preventDefault());
 </script>
 </body>

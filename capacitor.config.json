@@ -1,6 +1,6 @@
 {
   "appId": "com.jrosal.pagomobilexpress",
-  "appName": "Pagomóvil Express",
+  "appName": "RectiPagos",
   "webDir": "www",
   "android": {
     "allowMixedContent": false

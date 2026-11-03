@@ -159,7 +159,7 @@ public class PxBioPlugin extends Plugin {
             }
         });
         BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Pagomóvil Express")
+                .setTitle("RectiPagos")
                 .setSubtitle("Confirma con tu huella o rostro")
                 .setNegativeButtonText("Cancelar")
                 .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)

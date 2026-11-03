@@ -70,4 +70,16 @@ fs.writeFileSync(path.join(RES_VALUES, "styles.xml"), `<?xml version="1.0" encod
 </resources>
 `);
 console.log("styles.xml actualizado");
+
+// permiso de cámara para el escáner QR (getUserMedia) en AndroidManifest.xml
+const manifestPath = path.join(ROOT, "android", "app", "src", "main", "AndroidManifest.xml");
+let m = fs.readFileSync(manifestPath, "utf8");
+if (!m.includes("android.permission.CAMERA") && m.includes("<application")) {
+  const m2 = m.replace("<application", '    <uses-permission android:name="android.permission.CAMERA" />\n    <application');
+  if (m2 !== m) {
+    fs.writeFileSync(manifestPath, m2);
+    console.log("permiso CAMERA agregado");
+  }
+}
+
 console.log("OK: plugin biometrico y tema instalados");

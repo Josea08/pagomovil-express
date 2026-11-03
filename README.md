@@ -1,8 +1,10 @@
-# 💳 Pagomóvil Express
+# 💳 RectiPagos
 
 App para Android que prepara tu **Pago Móvil** en un toque: guarda tu cédula, banco, teléfono y
 cuenta **cifrados con AES-256 con tu PIN**, genera el mensaje listo para copiar o enviar
-por WhatsApp, con historial de pagos y conversión Bs/USD con la tasa BCV.
+por WhatsApp, con historial de pagos y conversión Bs/USD con la tasa BCV. Incluye desbloqueo
+por huella, lista nativa de bancos con buscador, lectura de QR con los datos del comercio y
+modo oscuro según el sistema.
 
 > ⚠️ Importante: esta app NO paga en puntos de venta con NFC. Eso requiere que el banco
 > entregue un token oficial a Google Wallet, y ningún banco venezolano lo ofrece todavía.
@@ -45,8 +47,8 @@ por WhatsApp, con historial de pagos y conversión Bs/USD con la tasa BCV.
 ## Seguridad
 
 - Todo se cifra con AES-GCM 256 y PBKDF2 (150.000 iteraciones) derivado de tu PIN.
-- El PIN no se guarda: si lo olvidas, hay que borrar los datos (botón en la pestaña Tasa y más).
-- Limpia el historial o vacía la app en Ajustes si vas a vender o prestar el teléfono.
+- El PIN no se guarda: si lo olvidas, hay que borrar los datos (botón en la pantalla de PIN o en Mi perfil → Seguridad).
+- Limpia el historial o vacía la app en Mi perfil si vas a vender o prestar el teléfono.
 
 ## Idea de migración futura
 
