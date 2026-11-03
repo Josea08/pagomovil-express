@@ -183,11 +183,15 @@ public class PxBioPlugin extends Plugin {
         KeyStore.Entry entry;
         try {
             entry = ks.getEntry(KEY_ALIAS, null);
-        } catch (KeyPermanentlyInvalidatedException e) {
-            // se registró una huella nueva: la clave vieja murió, se borra
-            // para que protect() cree una nueva al reactivar
-            try { ks.deleteEntry(KEY_ALIAS); } catch (Exception ignored) {}
-            entry = null;
+        } catch (Exception e) {
+            if (e instanceof KeyPermanentlyInvalidatedException) {
+                // se registró una huella nueva: la clave vieja murió, se borra
+                // para que protect() cree una nueva al reactivar
+                try { ks.deleteEntry(KEY_ALIAS); } catch (Exception ignored) {}
+                entry = null;
+            } else {
+                throw e;
+            }
         }
         if (entry instanceof KeyStore.SecretKeyEntry) {
             return ((KeyStore.SecretKeyEntry) entry).getSecretKey();
