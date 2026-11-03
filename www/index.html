@@ -226,6 +226,12 @@
     <button class="bank-btn" id="bancoDestinoBtn" onclick="openBankSheet('dest')"><span>Seleccionar banco</span><span class="chev">›</span></button>
     <select id="bancoDestino" style="display:none"></select>
 
+    <label>Teléfono del beneficiario</label>
+    <input type="tel" id="benTel" placeholder="0412 1234567" inputmode="tel" autocomplete="off">
+
+    <label>Cédula del beneficiario</label>
+    <input id="benCI" placeholder="V12345678" autocomplete="off" style="text-transform:uppercase">
+
     <div class="monto-display">
       <span class="big" id="bigMonto">0,00</span>
       <span class="small" id="usdView">—</span>
@@ -241,7 +247,7 @@
 
   <div class="card">
     <div class="sec-t">Leer QR del comercio</div>
-    <div class="note" style="margin-top:0">Escanea el QR con los datos del banco y se llenan solos el banco destino y el monto.</div>
+    <div class="note" style="margin-top:0">Escanea el QR con los datos del banco y se llenan solos el banco destino, el monto, el teléfono y la cédula del beneficiario.</div>
     <div class="row">
       <button class="btn ghost" id="qrCamBtn" onclick="startQRScan()">Escanear con cámara</button>
       <button class="btn ghost" id="qrImgBtn" onclick="qrFile.click()">Elegir imagen</button>
@@ -538,6 +544,8 @@ function fmt(n){ return (Math.round(n*100)/100).toLocaleString("es-VE",{minimumF
 function loadUI(){
   loadBanks(bancoDestino, localStorage.getItem("px_lastDest"));
   loadBanks(f_banco, profile.f_banco);
+  benTel.value = perfilTelFmt(localStorage.getItem("px_lastBenTel")||"");
+  benCI.value = localStorage.getItem("px_lastBenCI")||"";
   f_ci.value = profile.f_ci||"";
   f_tel.value = profile.f_tel||"";
   f_cuenta.value = profile.f_cuenta||"";
@@ -668,38 +676,27 @@ async function generarPago(){
   const dest = bancoDestino.value;
   if(!m||m<=0){ toast("Introduce un monto"); monto.focus(); return; }
   if(!dest){ toast("Selecciona el banco del comercio"); openBankSheet('dest'); return; }
-  if(!profile?.f_ci || !profile?.f_tel || !profile?.f_banco){
-    // red de seguridad: si el perfil en memoria quedó desactualizado,
-    // releerlo de los campos de la pantalla antes de rendirse
-    profile = {
-      f_ci:f_ci.value.trim(), f_banco:f_banco.value, f_tel:f_tel.value.trim(),
-      f_cuenta:f_cuenta.value.replace(/\s/g,""), f_card:f_card.value.trim(), f_tasa:f_tasa.value,
-      f_tasa_fecha: profile?.f_tasa_fecha||""
-    };
-    persist();
-  }
-  if(!profile?.f_ci || !profile?.f_tel || !profile?.f_banco){
-    const faltan = [];
-    if(!profile?.f_ci) faltan.push("cédula");
-    if(!profile?.f_tel) faltan.push("teléfono");
-    if(!profile?.f_banco) faltan.push("banco");
-    toast("Falta en tu perfil: " + faltan.join(", "));
-    document.querySelector('[data-page="page-perfil"]').click();
-    return;
-  }
+  // el mensaje lleva SOLO los datos del beneficiario, nunca los del perfil
+  const telBen = normTel(benTel.value);
+  if(!telBen){ toast("Introduce el teléfono del beneficiario"); benTel.focus(); return; }
+  const ciBen = benCI.value.trim().toUpperCase();
+  if(!ciBen){ toast("Introduce la cédula del beneficiario"); benCI.focus(); return; }
+  benTel.value = perfilTelFmt(telBen);
+  benCI.value = ciBen;
   localStorage.setItem("px_lastDest", dest);
+  localStorage.setItem("px_lastBenTel", telBen);
+  localStorage.setItem("px_lastBenCI", ciBen);
   resMonto.textContent = fmt(m)+" Bs";
-  resNota.textContent = `De ${BANCOS[profile.f_banco]||"tu banco"} hacia ${BANCOS[dest]||""}`;
+  resNota.textContent = `Hacia ${BANCOS[dest]||""}`;
   msgPago.textContent =
 `PAGO MOVIL
-CI: ${profile.f_ci}
-BANCO ORIGEN: ${profile.f_banco} - ${BANCOS[profile.f_banco]||""}
-TELEFONO: ${perfilTelFmt(profile.f_tel)}
-BANCO DESTINO: ${dest} - ${BANCOS[dest]||""}
+TELEFONO: ${perfilTelFmt(telBen)}
+CI: ${ciBen}
+BANCO: ${dest} - ${BANCOS[dest]||""}
 MONTO: ${fmt(m)} Bs.`;
   resultCard.style.display = "block";
   resultCard.scrollIntoView({behavior:"smooth"});
-  history.unshift({m, dest, d: new Date().toLocaleString("es-VE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})});
+  history.unshift({m, dest, benTel: telBen, benCI: ciBen, d: new Date().toLocaleString("es-VE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})});
   history = history.slice(0,50);
   localStorage.setItem("px_hist", JSON.stringify(history));
   renderHist();
@@ -729,7 +726,7 @@ function renderHist(){
     hist.insertAdjacentHTML("beforeend",
       `<div class="hist-row">
         <span><b style="font-variant-numeric:tabular-nums">${fmt(h.m)}</b> Bs
-          <span class="sub">${BANCOS[h.dest]||""}</span></span>
+          <span class="sub">${BANCOS[h.dest]||""}${h.benTel ? " · " + perfilTelFmt(h.benTel) : ""}</span></span>
         <span class="sub" style="text-align:right">${h.d}</span>
       </div>`);
   });
@@ -861,7 +858,7 @@ function parseQR(text){
       return out;
     }
   } catch(e){}
-  const mBanco = text.match(/BANCO DESTINO:\s*(\d{4})/i);
+  const mBanco = text.match(/BANCO DESTINO:\s*(\d{4})/i) || text.match(/^BANCO:\s*(\d{4})/im);
   if(mBanco) out.banco = mBanco[1];
   const mTel = text.match(/TELEFONO:\s*([0-9 ]{7,15})/i);
   if(mTel) out.telefono = normTel(mTel[1]);
@@ -889,6 +886,8 @@ function applyQR(text){
   const partes = [];
   if(d.banco){ bancoDestino.value = d.banco; localStorage.setItem("px_lastDest", d.banco); renderBankLabels(); partes.push(BANCOS[d.banco]); }
   if(d.monto){ monto.value = d.monto; refreshMonto(); partes.push(fmt(d.monto)+" Bs"); }
+  if(d.telefono){ benTel.value = perfilTelFmt(d.telefono); localStorage.setItem("px_lastBenTel", d.telefono); }
+  if(d.ci){ benCI.value = d.ci; localStorage.setItem("px_lastBenCI", d.ci); }
   if(d.telefono || d.ci){
     qrNote.textContent = "QR leído" + (d.telefono ? " · Teléfono: " + d.telefono : "") + (d.ci ? " · CI: " + d.ci : "") + ". Revisa los datos antes de generar el pago.";
   } else { qrNote.textContent = ""; }
