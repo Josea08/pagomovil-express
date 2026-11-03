@@ -136,6 +136,7 @@
     <p class="lock-sub" id="lockHint">Introduce tu PIN de seguridad</p>
     <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
     <button class="btn primary" onclick="unlock()">Entrar</button>
+    <button id="bioEntryBtn" class="btn ghost" style="display:none" onclick="bioEntry()">Entrar con huella</button>
   </div>
 </div>
 
@@ -220,6 +221,8 @@
   </div>
   <div class="card">
     <div class="sec-t">Seguridad</div>
+    <button id="bioBtn" class="btn ghost" style="display:none">Activar huella</button>
+    <div id="bioNote" class="note"></div>
     <button class="btn danger-line" onclick="wipeAll()">Borrar todos los datos</button>
     <div class="note">Reinicia la app por completo. Se borra tu perfil, PIN e historial.</div>
   </div>
@@ -269,8 +272,90 @@ async function keyFromPin(pin, salt){
 let KEY = null, profile = null;
 let history = JSON.parse(localStorage.getItem("px_hist") || "[]");
 
-async function unlock(){
-  const pin = pinInput.value;
+/* ====== Biometría nativa (solo en el APK) ====== */
+function bioPlugin(){
+  try {
+    if (window.Capacitor && Capacitor.isNativePlatform() && Capacitor.Plugins.PxBio) {
+      return Capacitor.Plugins.PxBio;
+    }
+  } catch(e){}
+  return null;
+}
+/* blob guardian: contiene el PIN sellado con la clave del Keystore */
+const BIO_KEY = "px_bio";
+function bioEnabled(){ return !!localStorage.getItem(BIO_KEY); }
+
+async function bioStatus(){
+  const p = bioPlugin();
+  if(!p) return {plugin:false};
+  try { return await p.status(); } catch(e){ return {plugin:true, hardware:false}; }
+}
+
+async function bioUnlock(){
+  const p = bioPlugin();
+  if(!p) return null;
+  const blob = localStorage.getItem(BIO_KEY);
+  if(!blob) return null;
+  const res = await p.unlock({ blob });
+  return res.payload; // { pin }
+}
+
+async function bioProtect(pin){
+  const p = bioPlugin();
+  const sealed = await p.protect({ payload: JSON.stringify({ pin }) });
+  localStorage.setItem(BIO_KEY, sealed.blob);
+}
+
+function bioDisable(){ localStorage.removeItem(BIO_KEY); renderSecurity(); toast("Huella desactivada"); }
+
+async function renderSecurity(){
+  const st = await bioStatus();
+  const inApp = !!st.plugin;
+  const btn = document.getElementById("bioBtn");
+  const note = document.getElementById("bioNote");
+  if(!inApp){
+    btn.style.display = "none";
+    note.textContent = "La huella está disponible al instalar la app (APK). En el navegador usa solo tu PIN.";
+    return;
+  }
+  if(!st.hardware){
+    btn.style.display = "none";
+    note.textContent = "Este teléfono no tiene lector de huella disponible.";
+    return;
+  }
+  if(!st.enrolled){
+    btn.style.display = "none";
+    note.textContent = "Registra primero una huella o rostro en los ajustes de tu teléfono.";
+    return;
+  }
+  btn.style.display = "block";
+  if(bioEnabled()){
+    btn.textContent = "Desactivar desbloqueo por huella";
+    btn.classList.remove("ghost"); btn.classList.add("danger-line");
+    btn.onclick = bioDisable;
+    note.textContent = "Entrarás con tu huella. También puedes usar tu PIN en cualquier momento.";
+  } else {
+    btn.textContent = "Activar desbloqueo por huella";
+    btn.classList.add("ghost"); btn.classList.remove("danger-line");
+    btn.onclick = bioEnable;
+    note.textContent = "Tu PIN quedará sellado con el hardware del teléfono y solo se abrirá con tu huella.";
+  }
+}
+
+async function bioEnable(){
+  const p = bioPlugin();
+  if(!p || !KEY) return;
+  try {
+    await bioProtect(KEY);
+    toast("Huella activada");
+  } catch(e){
+    toast(e.message && /cancel/i.test(e.message) ? "Cancelado" : "No se pudo activar la huella");
+  }
+  renderSecurity();
+}
+
+async function unlock(pinArg){
+  const pin = pinArg != null ? pinArg : pinInput.value;
   const blob = localStorage.getItem("px_vault");
   try{
     if(blob){
@@ -287,10 +372,33 @@ async function unlock(){
     loadUI();
     lock.style.display = "none";
     app.style.display = "block";
+    renderSecurity();
   }catch(e){
+    if(pinArg != null){ toast("La huella no pudo abrir, usa tu PIN"); return; }
     toast("PIN incorrecto");
     pinInput.value = "";
   }
+}
+
+/* Entrada rápida por huella en la pantalla de bloqueo */
+async function bioEntry(){
+  const b = document.getElementById("bioEntryBtn");
+  b.disabled = true;
+  try {
+    const payload = await bioUnlock();
+    if(!payload){ b.disabled = false; return; }
+    const pin = JSON.parse(payload).pin;
+    await unlock(pin);
+  } catch(e){
+    // cancelado o falló: el usuario puede teclear el PIN
+    toast("Huella cancelada, usa tu PIN");
+  }
+  b.disabled = false;
+}
+async function setupBioEntry(){
+  const btn = document.getElementById("bioEntryBtn");
+  if(!bioPlugin() || !localStorage.getItem(BIO_KEY)) return;
+  btn.style.display = "block";
 }
 
 async function persist(){
@@ -394,7 +502,13 @@ function clearHist(){ history=[]; localStorage.removeItem("px_hist"); renderHist
 function copyField(id){ const v=document.getElementById(id).value; if(!v){toast("El campo está vacío");return;} navigator.clipboard.writeText(v); toast("Copiado"); }
 function changePin(){
   const n = prompt("Nuevo PIN (4-8 dígitos):");
-  if(n && /^\d{4,8}$/.test(n)){ KEY=n; persist(); toast("PIN actualizado"); }
+  if(n && /^\d{4,8}$/.test(n)){
+    KEY = n;
+    persist();
+    localStorage.removeItem(BIO_KEY); // el PIN cambió: hay que re-activar la huella
+    renderSecurity();
+    toast("PIN actualizado. Activa la huella de nuevo si la usabas.");
+  }
   else if(n) toast("El PIN debe tener 4 a 8 dígitos");
 }
 function wipeAll(){
@@ -410,6 +524,7 @@ document.querySelectorAll("nav button").forEach(b=>{
     b.classList.add("on");
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
     document.getElementById(b.dataset.page).classList.add("on");
+    if(b.dataset.page === "page-tasa") renderSecurity();
     window.scrollTo({top:0});
   };
 });
@@ -422,6 +537,7 @@ setInterval(tick, 10000); tick();
 if(location.hash.startsWith("#m=")){ monto.value = decodeURIComponent(location.hash.slice(3)); }
 
 pinInput.addEventListener("keydown", e=>{ if(e.key==="Enter") unlock(); });
+setupBioEntry(); // muestra el botón de huella en el candado si ya estaba activada
 document.body.addEventListener("submit", e=>e.preventDefault());
 </script>
 </body>

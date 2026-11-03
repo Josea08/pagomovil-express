@@ -26,6 +26,9 @@ jobs:
       - name: Generate Android project (Capacitor)
         run: npx cap add android && npx cap sync
 
+      - name: Install native biometric plugin
+        run: node infra/apply-native.js
+
       - name: Build debug APK
         working-directory: android
         run: |
