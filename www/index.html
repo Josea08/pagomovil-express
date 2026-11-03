@@ -62,6 +62,11 @@
   .monto-display .big{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
   .monto-display .small{font-size:12.5px;color:var(--muted);text-align:right;}
 
+  /* tasa BCV */
+  .tasa-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);}
+  .tasa-row b{color:var(--text);font-variant-numeric:tabular-nums;}
+  .tasa-row a{color:var(--primary);cursor:pointer;font-weight:600;white-space:nowrap;}
+
   /* botones */
   .btn{
     display:block;width:100%;padding:13px;border:none;border-radius:11px;
@@ -169,6 +174,11 @@
       <span class="small" id="usdView">—</span>
     </div>
 
+    <div class="tasa-row">
+      <span id="tasaLabel">Tasa BCV: —</span>
+      <a id="tasaUpdateLink" onclick="actualizarTasaBCV()">Actualizar</a>
+    </div>
+
     <button class="btn primary" onclick="generarPago()">Preparar pago móvil</button>
   </div>
 
@@ -217,6 +227,7 @@
     <div class="sec-t">Tasa de cambio</div>
     <label>Bs. por cada dólar (tasa BCV del día)</label>
     <input type="number" id="f_tasa" step="any" inputmode="decimal" placeholder="0,00" onchange="saveProfile()">
+    <button class="btn ghost" id="btnTasaBCV" onclick="actualizarTasaBCV()">Actualizar con la tasa BCV del día</button>
     <div id="tasaInfo" class="note"></div>
   </div>
   <div class="card">
@@ -431,13 +442,18 @@ function loadUI(){
   f_tasa.value = profile.f_tasa||"";
   renderHist();
   refreshMonto();
+  renderTasa();
 }
 function saveProfile(){
+  const prev = profile || {};
+  const nuevaTasa = f_tasa.value;
   profile = {
     f_ci:f_ci.value.trim(), f_banco:f_banco.value, f_tel:f_tel.value.trim(),
-    f_cuenta:f_cuenta.value.replace(/\s/g,""), f_card:f_card.value.trim(), f_tasa:f_tasa.value
+    f_cuenta:f_cuenta.value.replace(/\s/g,""), f_card:f_card.value.trim(), f_tasa:nuevaTasa,
+    // si la tasa no cambió, se conserva su fecha de actualización; si la escribiste a mano, pasa a ser manual
+    f_tasa_fecha: (nuevaTasa === prev.f_tasa ? (prev.f_tasa_fecha||"") : "")
   };
-  persist(); refreshMonto(); toast("Guardado");
+  persist(); refreshMonto(); renderTasa(); toast("Guardado");
 }
 function refreshMonto(){
   const m = parseFloat(monto.value)||0;
@@ -446,6 +462,62 @@ function refreshMonto(){
   usdView.textContent = m>0 ? (tasa>0 ? "≈ $"+fmt(m/tasa) : "Configura la tasa en Ajustes") : "—";
 }
 monto.addEventListener("input", refreshMonto);
+
+/* ====== Tasa BCV (actualización manual) ====== */
+/* La tasa oficial del BCV no tiene API pública y su web bloquea consultas
+   desde apps, así que se consulta un espejo público de la tasa oficial.
+   Si no hay internet, la tasa escrita a mano sigue funcionando igual. */
+function renderTasa(){
+  const tasa = parseFloat(profile?.f_tasa)||0;
+  const fecha = profile?.f_tasa_fecha || "";
+  const fechaCorta = fecha ? new Date(fecha).toLocaleDateString("es-VE",{day:"2-digit",month:"2-digit",year:"numeric"}) : "";
+  const lbl = document.getElementById("tasaLabel");
+  if(lbl) lbl.innerHTML = tasa>0 ? `Tasa BCV: <b>${fmt(tasa)} Bs/$</b>${fechaCorta ? " · " + fechaCorta : ""}` : "Tasa BCV: —";
+  const info = document.getElementById("tasaInfo");
+  if(info){
+    info.textContent = (tasa>0 && fecha)
+      ? `Tasa oficial BCV: ${fmt(tasa)} Bs/$. Actualizada el ${fechaCorta}. Fuente: tasa oficial publicada por el BCV.`
+      : "Puedes escribir la tasa a mano o pulsar «Actualizar» para traer la oficial del BCV del día.";
+  }
+}
+
+async function actualizarTasaBCV(){
+  const link = document.getElementById("tasaUpdateLink");
+  const btn = document.getElementById("btnTasaBCV");
+  const oldLink = link ? link.textContent : "";
+  if(link) link.textContent = "Actualizando…";
+  if(btn) btn.disabled = true;
+  // dos espejos públicos de la tasa oficial; si uno falla, se intenta el otro
+  const fuentes = [
+    { url:"https://ve.dolarapi.com/v1/dolares/oficial",
+      leer: d => ({ tasa: parseFloat(d.promedio), fecha: d.fechaActualizacion }) },
+    { url:"https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=bcv",
+      leer: d => ({ tasa: parseFloat(d.monitors.usd.price), fecha: d.monitors.usd.last_update }) }
+  ];
+  let ok = null;
+  for(const f of fuentes){
+    try{
+      const r = await fetch(f.url);
+      if(!r.ok) continue;
+      const d = await r.json();
+      const v = f.leer(d);
+      if(isFinite(v.tasa) && v.tasa > 0){ ok = v; break; }
+    }catch(e){ /* siguiente fuente */ }
+  }
+  if(ok){
+    f_tasa.value = ok.tasa;
+    saveProfile();
+    profile.f_tasa_fecha = ok.fecha || new Date().toISOString();
+    persist();
+    renderTasa(); refreshMonto();
+    toast("Tasa BCV actualizada: " + fmt(ok.tasa) + " Bs/$");
+  } else {
+    toast("Sin conexión: no se pudo actualizar. Escríbela a mano.");
+  }
+  if(link) link.textContent = oldLink || "Actualizar";
+  if(btn) btn.disabled = false;
+}
+
 document.querySelectorAll("[data-add]").forEach(b=>{
   b.onclick = ()=>{
     monto.value = ((parseFloat(monto.value)||0) + parseFloat(b.dataset.add)).toFixed(2);
