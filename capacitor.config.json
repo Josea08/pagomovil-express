@@ -1,0 +1,8 @@
+{
+  "appId": "com.jrosal.pagomobilexpress",
+  "appName": "Pagomóvil Express",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}
