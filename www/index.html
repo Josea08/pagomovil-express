@@ -3,184 +3,271 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a1f44">
+<meta name="theme-color" content="#12294b">
 <title>Pagomóvil Express</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
-    --bg:#0a1f44; --bg2:#0e2a5c; --card:#12336e; --card2:#1a3f80;
-    --text:#eaf1ff; --muted:#8fa8d0; --accent:#22c55e; --accent2:#16a34a;
-    --blue:#3b82f6; --red:#ef4444; --gold:#facc15;
+    --bar:#12294b; --bg:#f1f3f6; --card:#ffffff; --line:#e3e7ee;
+    --text:#1c2430; --muted:#67748a; --primary:#1d4ed8; --primary-tap:#1739a8;
+    --green:#15803d; --good:#dcf0e2; --danger:#b91c1c;
+    radius:14px;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px;}
-  header{position:sticky;top:0;background:linear-gradient(135deg,var(--bg2),var(--bg));padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff14;z-index:10;}
-  header h1{font-size:18px;margin:0;display:flex;align-items:center;gap:8px;}
-  .badge{font-size:9px;background:var(--accent);color:#04210f;padding:3px 7px;border-radius:99px;font-weight:700;letter-spacing:.5px;}
-  main{max-width:520px;margin:0 auto;padding:16px;}
-  .card{background:var(--card);border:1px solid #ffffff12;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 18px #0009;}
-  .card h2{font-size:14px;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;}
-  .card h2 button{all:unset;cursor:pointer;color:var(--blue);font-size:12px;text-transform:none;letter-spacing:0;}
-  .row{display:flex;gap:10px;flex-wrap:wrap;}
-  .field{flex:1;min-width:140px;}
-  label{display:block;font-size:11px;color:var(--muted);margin:10px 0 4px;}
-  input,select{width:100%;padding:11px 12px;background:var(--bg);border:1px solid #ffffff20;border-radius:10px;color:var(--text);font-size:15px;outline:none;}
-  input:focus,select:focus{border-color:var(--blue);}
-  input[type=number]{font-variant-numeric:tabular-nums;}
-  .btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:13px 16px;border-radius:12px;font-weight:700;font-size:15px;width:100%;text-align:center;}
-  .btn-green{background:var(--accent);color:#04210f;}
-  .btn-green:active{background:var(--accent2);}
-  .btn-blue{background:var(--blue);color:#fff;}
-  .btn-dark{background:#ffffff14;color:var(--text);}
-  .btn-red{background:#ffffff12;color:var(--red);font-size:12px;padding:9px;}
-  .btn + .btn{margin-top:9px;}
-  .monto{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
-  .chip{border:none;background:#ffffff12;color:var(--text);padding:10px 0;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;}
-  .chip:active{background:var(--blue);}
-  .total{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px;font-size:13px;color:var(--muted);}
-  .total b{font-size:26px;color:var(--accent);font-variant-numeric:tabular-nums;}
-  .msg{background:#00000035;border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:pre-wrap;word-break:break-all;line-height:1.55;margin-top:12px;color:#c7d9f7;}
-  .hist-item{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #ffffff0d;font-size:14px;}
-  .hist-item small{display:block;color:var(--muted);font-size:11px;}
-  nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid #ffffff15;z-index:20;}
-  nav button{all:unset;flex:1;text-align:center;padding:11px 0 calc(11px + env(safe-area-inset-bottom));font-size:11px;color:var(--muted);cursor:pointer;font-weight:600;}
-  nav button.active{color:var(--accent);}
-  nav span{display:block;font-size:20px;margin-bottom:2px;}
-  .page{display:none;} .page.active{display:block;}
-  .ok{color:var(--accent);} .muted{color:var(--muted);}
-  .pin-entry{max-width:520px;margin:20vh auto 0;text-align:center;padding:0 16px;}
-  .pin-entry input{text-align:center;letter-spacing:8px;font-size:22px;}
-  .toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:var(--accent);color:#04210f;padding:10px 20px;border-radius:99px;font-weight:700;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:99;}
-  .toast.show{opacity:1;}
-  .swap{text-align:right;font-size:11px;color:var(--muted);margin-top:4px;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.4;
+    padding-bottom:calc(64px + env(safe-area-inset-bottom));
+  }
+
+  /* barra superior, estilo app bancaria */
+  .bar{
+    background:var(--bar);color:#fff;
+    padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .bar .t{font-size:16.5px;font-weight:600;}
+  .bar .r{font-size:12.5px;color:#b9c6dd;}
+
+  main{max-width:480px;margin:0 auto;padding:12px 12px 8px;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 14px 15px;margin-bottom:12px;
+  }
+  .sec-t{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+  .sec-t a{color:var(--primary);text-decoration:none;font-weight:500;font-size:13px;cursor:pointer;}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px;}
+  input,select{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
+    background:#fff;color:var(--text);font-size:16px;outline:none;
+  }
+  input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 2px #1d4ed822;}
+  .row{display:flex;gap:10px;}
+  .row > *{flex:1;}
+
+  /* montos */
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+  .chip{
+    padding:10px 0;text-align:center;background:#fff;border:1px solid var(--line);
+    border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;color:var(--text);
+  }
+  .chip:active{border-color:var(--primary);color:var(--primary);}
+
+  .monto-display{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px;}
+  .monto-display .big{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .monto-display .small{font-size:12.5px;color:var(--muted);text-align:right;}
+
+  /* botones */
+  .btn{
+    display:block;width:100%;padding:13px;border:none;border-radius:11px;
+    font-size:15.5px;font-weight:600;cursor:pointer;text-align:center;margin-top:10px;
+    font-family:inherit;
+  }
+  .btn.primary{background:var(--green);color:#fff;}
+  .btn.primary:active{background:#166534;}
+  .btn.secondary{background:#eef2f7;color:var(--text);}
+  .btn.secondary:active{background:#e2e8f0;}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--text);}
+  .btn.danger-line{background:#fff;border:1px solid #f3c1c1;color:var(--danger);}
+
+  .msg-box{
+    background:#f7f9fb;border:1px solid var(--line);border-radius:10px;
+    padding:12px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;
+    font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;color:#384252;
+  }
+
+  .res-amount{font-size:24px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;}
+  .res-note{font-size:12.5px;color:var(--muted);}
+
+  .hist-row{padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;font-size:14px;}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-row .sub{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .hist-empty{color:var(--muted);font-size:13px;text-align:center;padding:10px 0;}
+
+  .note{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:10px;}
+
+  /* navegación inferior */
+  nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    background:var(--card);border-top:1px solid var(--line);
+    display:flex;justify-content:center;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1;max-width:480px;padding:9px 0 7px;border:none;background:none;
+    font:inherit;font-size:11px;color:var(--muted);cursor:pointer;
+  }
+  nav button.on{color:var(--primary);font-weight:600;}
+  nav svg{display:block;margin:0 auto 3px;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  nav .lbl{font-weight:inherit;}
+
+  /* lock */
+  #lock{max-width:480px;margin:0 auto;padding:0 20px;}
+  .lock-wrap{margin-top:18vh;text-align:center;}
+  .lock-logo{
+    width:64px;height:64px;border-radius:16px;background:var(--bar);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;margin-bottom:14px;
+  }
+  .lock-title{font-size:19px;font-weight:600;margin:0 0 4px;}
+  .lock-sub{font-size:13px;color:var(--muted);margin:0 0 22px;}
+  #pinInput{text-align:center;letter-spacing:10px;font-size:20px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(6px);
+    background:#33404f;color:#fff;padding:9px 16px;border-radius:9px;font-size:13.5px;
+    opacity:0;transition:.22s;pointer-events:none;z-index:99;max-width:90vw;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .page{display:none}.page.on{display:block}
 </style>
 </head>
 <body>
 
-<!-- Bloqueo por PIN -->
-<div id="lock" class="pin-entry">
-  <div style="font-size:44px">💳</div>
-  <h1 style="font-size:20px">Pagomóvil Express</h1>
-  <p class="muted" id="lockHint">Introduce tu PIN de seguridad</p>
-  <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
-  <button class="btn btn-green" style="margin-top:14px" onclick="unlock()">Desbloquear</button>
+<!-- Pantalla de PIN -->
+<div id="lock">
+  <div class="lock-wrap">
+    <div class="lock-logo">Px</div>
+    <h1 class="lock-title">Pagomóvil Express</h1>
+    <p class="lock-sub" id="lockHint">Introduce tu PIN de seguridad</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+    <button class="btn primary" onclick="unlock()">Entrar</button>
+  </div>
 </div>
 
 <div id="app" style="display:none">
-<header>
-  <h1>💳 Pagomóvil Express <span class="badge">BS</span></h1>
-  <span class="muted" id="clock" style="font-size:12px"></span>
-</header>
+<div class="bar">
+  <span class="t">Pagomóvil Express</span>
+  <span class="r" id="clock"></span>
+</div>
 <main>
 
-<!-- ===== PAGAR ===== -->
-<section class="page active" id="page-pay">
+<!-- PAGAR -->
+<section class="page on" id="page-pay">
   <div class="card">
-    <h2>Nuevo pago</h2>
-    <label>Monto en Bs.</label>
+    <div class="sec-t">Nuevo pago</div>
+
+    <label>Monto en bolívares</label>
     <input type="number" id="monto" placeholder="0,00" step="any" inputmode="decimal">
-    <div class="monto">
-      <button class="chip" data-add="50">+50</button>
+    <div class="chips">
+      <button class="chip" data-add="20">+20</button>
       <button class="chip" data-add="100">+100</button>
       <button class="chip" data-add="500">+500</button>
-      <button class="chip" data-add="1000">+1000</button>
+      <button class="chip" data-add="1000">+1.000</button>
     </div>
-    <div class="swap" id="usdView">—</div>
-    <label>Banco de destino (del comercio)</label>
+
+    <label>Banco del comercio (destino)</label>
     <select id="bancoDestino"></select>
-    <span onclick="generarPago()" class="btn btn-green" id="btnGen" style="margin-top:14px">📱 Preparar Pago Móvil</span>
+
+    <div class="monto-display">
+      <span class="big" id="bigMonto">0,00</span>
+      <span class="small" id="usdView">—</span>
+    </div>
+
+    <button class="btn primary" onclick="generarPago()">Preparar pago móvil</button>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
-    <h2>Listo para enviar <button onclick="clearAmt()">Cancelar</button></h2>
-    <div class="total"><span>Monto a pagar</span><b id="resMonto">0,00</b></div>
-    <div class="msg" id="msgPago"></div>
-    <button class="btn btn-green" onclick="copyMsg()">📋 Copiar mensaje</button>
-    <button class="btn btn-blue" onclick="shareMsg()">📤 Enviar por WhatsApp</button>
+    <div class="sec-t">Listo para enviar <a onclick="clearAmt()">Cancelar</a></div>
+    <div class="res-amount" id="resMonto">0,00 Bs</div>
+    <div class="res-note" id="resNota"></div>
+    <div class="msg-box" id="msgPago"></div>
+    <button class="btn secondary" onclick="copyMsg()">Copiar mensaje</button>
+    <button class="btn primary" onclick="shareMsg()">Enviar por WhatsApp</button>
   </div>
 
   <div class="card">
-    <h2>Historial <button onclick="clearHist()">Vaciar</button></h2>
+    <div class="sec-t">Pagos de hoy <a onclick="clearHist()">Vaciar historial</a></div>
     <div id="hist"></div>
   </div>
 </section>
 
-<!-- ===== PERFIL ===== -->
+<!-- PERFIL -->
 <section class="page" id="page-perfil">
   <div class="card">
-    <h2>Mis datos</h2>
-    <div class="row">
-      <div class="field"><label>Cédula / RIF</label>
-        <input id="f_ci" placeholder="V12345678" onchange="saveProfile()" autocomplete="off"></div>
-    </div>
-    <label>Banco de origen (tuyo)</label>
+    <div class="sec-t">Tus datos</div>
+    <label>Cédula o RIF</label>
+    <input id="f_ci" placeholder="V12345678" onchange="saveProfile()" autocomplete="off">
+    <label>Tu banco</label>
     <select id="f_banco" onchange="saveProfile()"></select>
-    <label>Teléfono (Pago Móvil)</label>
+    <label>Teléfono (pago móvil)</label>
     <input id="f_tel" placeholder="04121234567" inputmode="tel" onchange="saveProfile()" autocomplete="off">
-    <label>Número de cuenta (para transferencias)</label>
+    <label>Número de cuenta</label>
     <input id="f_cuenta" placeholder="0102 0000 0000 0000" inputmode="numeric" onchange="saveProfile()" autocomplete="off">
-    <label>Últimos 4 dígitos de tu tarjeta (opcional)</label>
-    <input id="f_card" placeholder="•••• 1234" maxlength="4" inputmode="numeric" onchange="saveProfile()" autocomplete="off">
-    <div style="margin-top:16px;font-size:12px" class="muted">🔐 Tus datos están cifrados con AES-256 usando tu PIN. No salen de tu teléfono.</div>
+    <label>Últimos 4 dígitos de tarjeta (opcional)</label>
+    <input id="f_card" placeholder="1234" maxlength="4" inputmode="numeric" onchange="saveProfile()" autocomplete="off">
+    <div class="note">Estos datos están cifrados en tu teléfono. Nadie más puede verlos y no salen del dispositivo.</div>
   </div>
   <div class="card">
-    <h2>Copiar útil</h2>
-    <button class="btn btn-dark" onclick="copyField('f_ci')">Copiar cédula</button>
-    <button class="btn btn-dark" onclick="copyField('f_cuenta')">Copiar cuenta completa</button>
-    <button class="btn btn-red" onclick="changePin()">Cambiar PIN</button>
+    <div class="sec-t">Accesos rápidos</div>
+    <button class="btn ghost" onclick="copyField('f_ci')">Copiar cédula</button>
+    <button class="btn ghost" onclick="copyField('f_cuenta')">Copiar número de cuenta</button>
+    <button class="btn danger-line" onclick="changePin()">Cambiar PIN</button>
   </div>
 </section>
 
-<!-- ===== TASA ===== -->
+<!-- AJUSTES -->
 <section class="page" id="page-tasa">
   <div class="card">
-    <h2>Tasa BCV</h2>
-    <label>Tasa Bs./USD</label>
-    <input type="number" id="f_tasa" step="any" inputmode="decimal" placeholder="0.00" onchange="saveProfile()">
-    <div id="tasaInfo" style="margin-top:10px;font-size:13px" class="muted"></div>
+    <div class="sec-t">Tasa de cambio</div>
+    <label>Bs. por cada dólar (tasa BCV del día)</label>
+    <input type="number" id="f_tasa" step="any" inputmode="decimal" placeholder="0,00" onchange="saveProfile()">
+    <div id="tasaInfo" class="note"></div>
   </div>
   <div class="card">
-    <h2>Seguridad</h2>
-    <button class="btn btn-red" onclick="wipeAll()">🗑️ Borrar todos los datos de la app</button>
-    <div style="font-size:11px;margin-top:10px" class="muted">Esto reinicia la app como si fuera nueva.</div>
+    <div class="sec-t">Seguridad</div>
+    <button class="btn danger-line" onclick="wipeAll()">Borrar todos los datos</button>
+    <div class="note">Reinicia la app por completo. Se borra tu perfil, PIN e historial.</div>
   </div>
 </section>
 
 </main>
 
 <nav>
-  <button class="active" data-page="page-pay"><span>💰</span>Pagar</button>
-  <button data-page="page-perfil"><span>👤</span>Mi perfil</button>
-  <button data-page="page-tasa"><span>⚙️</span>Tasa y más</button>
+  <button class="on" data-page="page-pay">
+    <svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h10"/><circle cx="19" cy="17" r="1.6"/></svg>
+    <span class="lbl">Pagar</span>
+  </button>
+  <button data-page="page-perfil">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1.4-3.4 4-5 7-5s5.6 1.6 7 5"/></svg>
+    <span class="lbl">Mi perfil</span>
+  </button>
+  <button data-page="page-tasa">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.7-1.6L13.4 2h-2.8l-.3 2.8a7 7 0 0 0-2.7 1.6l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12"/></svg>
+    <span class="lbl">Ajustes</span>
+  </button>
 </nav>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-/* ====== Datos de bancos (código de 4 dígitos Pago Móvil) ====== */
+/* ====== Bancos (código de 4 dígitos) ====== */
 const BANCOS = {
   "0102":"Banco de Venezuela","0104":"Banco Provincial","0105":"Mercantil",
   "0108":"Banesco","0114":"Banco Caroní","0115":"BFC Banco Exterior",
-  "0128":"Banco Sofitasa","0151":"BNC Banco Nacional de Crédito",
-  "0157":"Banco Plaza","0163":"Banco del Tesoro","0166":"Banco Agrícola",
-  "0168":"Banplus","0169":"Banco R4","0171":"Banco Activo","0172":"Bancamiga",
+  "0128":"Banco Sofitasa","0151":"BNC","0157":"Banco Plaza",
+  "0163":"Banco del Tesoro","0166":"Banco Agrícola","0168":"Banplus",
+  "0169":"Banco R4","0171":"Banco Activo","0172":"Bancamiga",
   "0173":"Banco BID","0174":"Bancrecer","0175":"Banco Bicentenario"
 };
-const BANCOS_LIMPIOS = BANCOS;
 
-/* ====== Crypto: cifrado AES-GCM con clave derivada del PIN ====== */
+/* ====== Crypto ====== */
 const enc = new TextEncoder(), dec = new TextDecoder();
-function b64(buf){return btoa(String.fromCharCode(...new Uint8Array(buf)));}
-function unb64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
-async function keyFromPin(pin,salt){
-  const km = await crypto.subtle.importKey("raw",enc.encode(pin),"PBKDF2",false,["deriveKey"]);
-  return crypto.subtle.deriveKey({name:"PBKDF2",salt:unb64(salt),iterations:150000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function keyFromPin(pin, salt){
+  const km = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt:unb64(salt), iterations:150000, hash:"SHA-256"},
+    km, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
 }
 
-let KEY = null;   // clave de sesión
-let profile = null;
-let history = JSON.parse(localStorage.getItem("px_hist")||"[]");
+let KEY = null, profile = null;
+let history = JSON.parse(localStorage.getItem("px_hist") || "[]");
 
 async function unlock(){
   const pin = pinInput.value;
@@ -188,111 +275,154 @@ async function unlock(){
   try{
     if(blob){
       const v = JSON.parse(blob);
-      const plain = await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(v.iv)}, await keyFromPin(pin,v.salt), unb64(v.data));
+      if(!v.data) throw 0;
+      const plain = await crypto.subtle.decrypt(
+        {name:"AES-GCM", iv:unb64(v.iv)}, await keyFromPin(pin, v.salt), unb64(v.data));
       profile = JSON.parse(dec.decode(plain));
     } else {
-      const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
       profile = {};
-      localStorage.setItem("px_vault", JSON.stringify({salt, iv:"AAA=" , data:""}));
-      await persist(pin,true);
-      profile = {};
-      await persist(pin);
     }
     KEY = pin;
+    await persist();
     loadUI();
-    lock.style.display="none"; app.style.display="block";
-  }catch(e){ toast("❌ PIN incorrecto"); pinInput.value=""; }
+    lock.style.display = "none";
+    app.style.display = "block";
+  }catch(e){
+    toast("PIN incorrecto");
+    pinInput.value = "";
+  }
 }
 
 async function persist(){
   if(!KEY) return;
-  const salt = JSON.parse(localStorage.getItem("px_vault")).salt;
+  let salt = "init";
+  const old = localStorage.getItem("px_vault");
+  if(old) salt = JSON.parse(old).salt;
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = await crypto.subtle.encrypt({name:"AES-GCM",iv}, await keyFromPin(KEY,salt), enc.encode(JSON.stringify(profile)));
+  const data = await crypto.subtle.encrypt(
+    {name:"AES-GCM", iv}, await keyFromPin(KEY, salt), enc.encode(JSON.stringify(profile)));
   localStorage.setItem("px_vault", JSON.stringify({salt, iv:b64(iv), data:b64(data)}));
 }
 
 /* ====== UI ====== */
-function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),1800); }
-function loadBanks(el, val){ el.innerHTML = "<option value=''>— Seleccionar —</option>" + Object.entries(BANCOS_LIMPIOS).map(([c,n])=>`<option value="${c}">${c} · ${n}</option>`).join(""); if(val) el.value=val; }
-function fmt(n){ return (Math.round(n*100)/100).toLocaleString("es-VE",{minimumFractionDigits:2}); }
+function toast(t){const e=document.getElementById("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._p); e._p=setTimeout(()=>e.classList.remove("show"),1900);}
+function loadBanks(sel, val){
+  sel.innerHTML = "<option value=''>Seleccionar banco</option>" +
+    Object.entries(BANCOS).map(([c,n])=>`<option value="${c}">${n} (${c})</option>`).join("");
+  if(val) sel.value = val;
+}
+function fmt(n){ return (Math.round(n*100)/100).toLocaleString("es-VE",{minimumFractionDigits:2, maximumFractionDigits:2}); }
 
 function loadUI(){
   loadBanks(bancoDestino, localStorage.getItem("px_lastDest"));
   loadBanks(f_banco, profile.f_banco);
-  f_ci.value = profile.f_ci||""; f_tel.value = profile.f_tel||"";
-  f_cuenta.value = profile.f_cuenta||""; f_card.value = profile.f_card||"";
+  f_ci.value = profile.f_ci||"";
+  f_tel.value = profile.f_tel||"";
+  f_cuenta.value = profile.f_cuenta||"";
+  f_card.value = profile.f_card||"";
   f_tasa.value = profile.f_tasa||"";
-  renderHist(); renderUsd();
+  renderHist();
+  refreshMonto();
 }
 function saveProfile(){
-  profile = {f_ci:f_ci.value.trim(), f_banco:f_banco.value, f_tel:f_tel.value.trim(),
-    f_cuenta:f_cuenta.value.replace(/\s/g,""), f_card:f_card.value.trim(), f_tasa:f_tasa.value};
-  persist(); renderUsd(); toast("✅ Guardado (cifrado)");
+  profile = {
+    f_ci:f_ci.value.trim(), f_banco:f_banco.value, f_tel:f_tel.value.trim(),
+    f_cuenta:f_cuenta.value.replace(/\s/g,""), f_card:f_card.value.trim(), f_tasa:f_tasa.value
+  };
+  persist(); refreshMonto(); toast("Guardado");
 }
-function renderUsd(){
-  const m = parseFloat(monto.value)||0, tasa = parseFloat(profile?.f_tasa)||0;
-  usdView.textContent = m>0 ? (tasa>0 ? `≈ $${fmt(m/tasa)} USD (BCV ${tasa>0?fmt(tasa):""})` : "Configura la tasa BCV para ver el equivalente en USD") : "—";
+function refreshMonto(){
+  const m = parseFloat(monto.value)||0;
+  bigMonto.textContent = fmt(m);
+  const tasa = parseFloat(profile?.f_tasa)||0;
+  usdView.textContent = m>0 ? (tasa>0 ? "≈ $"+fmt(m/tasa) : "Configura la tasa en Ajustes") : "—";
 }
-monto.addEventListener("input", renderUsd);
-document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{monto.value=((parseFloat(monto.value)||0)+parseFloat(b.dataset.add)).toFixed(2); renderUsd();});
+monto.addEventListener("input", refreshMonto);
+document.querySelectorAll("[data-add]").forEach(b=>{
+  b.onclick = ()=>{
+    monto.value = ((parseFloat(monto.value)||0) + parseFloat(b.dataset.add)).toFixed(2);
+    refreshMonto();
+  };
+});
 
 async function generarPago(){
   const m = parseFloat(monto.value);
   const dest = bancoDestino.value;
-  if(!m||m<=0){ toast("⚠️ Introduce un monto"); return; }
-  if(!dest){ toast("⚠️ Selecciona banco de destino"); return; }
-  if(!profile?.f_ci||!profile?.f_tel||!profile?.f_banco){ toast("⚠️ Completa tu perfil primero"); return; }
-  localStorage.setItem("px_lastDest",dest);
+  if(!m||m<=0){ toast("Introduce un monto"); monto.focus(); return; }
+  if(!dest){ toast("Selecciona el banco del comercio"); bancoDestino.focus(); return; }
+  if(!profile?.f_ci || !profile?.f_tel || !profile?.f_banco){
+    toast("Completa tu perfil primero");
+    document.querySelector('[data-page="page-perfil"]').click();
+    return;
+  }
+  localStorage.setItem("px_lastDest", dest);
   resMonto.textContent = fmt(m)+" Bs";
+  resNota.textContent = `De ${BANCOS[profile.f_banco]} hacia ${BANCOS[dest]}`;
   msgPago.textContent =
-`PAGO MÓVIL
+`PAGO MOVIL
 CI: ${profile.f_ci}
-BANCO ORIGEN: ${profile.f_banco} ${BANCOS_LIMPIOS[profile.f_banco]||""}
-TELÉFONO: ${profile.f_tel}
-BANCO DESTINO: ${dest} ${BANCOS_LIMPIOS[dest]}
-MONTO: ${fmt(m)} Bs D.`;
-  resultCard.style.display="block"; resultCard.scrollIntoView({behavior:"smooth"});
-  history.unshift({m, dest, ci:profile.f_ci, d:new Date().toLocaleString("es-VE")});
+BANCO ORIGEN: ${profile.f_banco} - ${BANCOS[profile.f_banco]}
+TELEFONO: ${perfilTelFmt(profile.f_tel)}
+BANCO DESTINO: ${dest} - ${BANCOS[dest]}
+MONTO: ${fmt(m)} Bs.`;
+  resultCard.style.display = "block";
+  resultCard.scrollIntoView({behavior:"smooth"});
+  history.unshift({m, dest, d: new Date().toLocaleString("es-VE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})});
   history = history.slice(0,50);
   localStorage.setItem("px_hist", JSON.stringify(history));
   renderHist();
 }
-function clearAmt(){ monto.value=""; renderUsd(); resultCard.style.display="none"; }
-function copyMsg(){ navigator.clipboard.writeText(msgPago.textContent); toast("📋 Copiado"); }
+function perfilTelFmt(t){ return t.length===11 ? `${t.slice(0,4)} ${t.slice(4)}` : t; }
+function clearAmt(){ monto.value=""; refreshMonto(); resultCard.style.display="none"; window.scrollTo({top:0,behavior:"smooth"}); }
+function copyMsg(){ navigator.clipboard.writeText(msgPago.textContent); toast("Mensaje copiado"); }
 async function shareMsg(){
   if(navigator.share){ try{ await navigator.share({text:msgPago.textContent}); }catch(e){} }
-  else { copyMsg(); }
+  else copyMsg();
 }
 function renderHist(){
-  hist.innerHTML = history.length? "" : `<div class="muted" style="font-size:13px">Sin pagos aún.</div>`;
+  hist.innerHTML = history.length ? "" : '<div class="hist-empty">Aún no hay pagos registrados.</div>';
   history.slice(0,15).forEach(h=>{
-    hist.insertAdjacentHTML("beforeend",`<div class="hist-item"><div>${fmt(h.m)} Bs<small>${BANCOS_LIMPIOS[h.dest]||""} · ${h.ci}</small></div><small>${h.d}</small></div>`);
+    hist.insertAdjacentHTML("beforeend",
+      `<div class="hist-row">
+        <span><b style="font-variant-numeric:tabular-nums">${fmt(h.m)}</b> Bs
+          <span class="sub">${BANCOS[h.dest]||""}</span></span>
+        <span class="sub" style="text-align:right">${h.d}</span>
+      </div>`);
   });
 }
 function clearHist(){ history=[]; localStorage.removeItem("px_hist"); renderHist(); toast("Historial vaciado"); }
-function copyField(id){ const v=document.getElementById(id).value; if(!v){toast("Campo vacío");return;} navigator.clipboard.writeText(v); toast("📋 Copiado"); }
+function copyField(id){ const v=document.getElementById(id).value; if(!v){toast("El campo está vacío");return;} navigator.clipboard.writeText(v); toast("Copiado"); }
 function changePin(){
-  const n = prompt("Nuevo PIN (4–8 dígitos):");
-  if(n && /^\d{4,8}$/.test(n)){ KEY=n; persist(); toast("✅ PIN actualizado"); }
-  else if(n) toast("PIN inválido");
+  const n = prompt("Nuevo PIN (4-8 dígitos):");
+  if(n && /^\d{4,8}$/.test(n)){ KEY=n; persist(); toast("PIN actualizado"); }
+  else if(n) toast("El PIN debe tener 4 a 8 dígitos");
 }
-function wipeAll(){ if(confirm("¿Borrar TODO (perfil e historial)?")){ localStorage.clear(); location.reload(); } }
+function wipeAll(){
+  if(confirm("¿Borrar todos los datos de esta app? Esta acción no se puede deshacer.")){
+    localStorage.clear(); location.reload();
+  }
+}
 
 /* Navegación */
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active");
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById(b.dataset.page).classList.add("active");
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+    document.getElementById(b.dataset.page).classList.add("on");
+    window.scrollTo({top:0});
+  };
 });
 
 /* Reloj */
-setInterval(()=>{ clock.textContent = new Date().toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"}); },1000);
+function tick(){ clock.textContent = new Date().toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"}); }
+setInterval(tick, 10000); tick();
 
-/* Recibir monto compartido desde otra app */
-if(location.hash.startsWith("#m=")){ monto.value = decodeURIComponent(location.hash.slice(3)); location.hash=""; }
-pinInput.addEventListener("keydown",e=>{ if(e.key==="Enter") unlock(); });
+/* Monto compartido */
+if(location.hash.startsWith("#m=")){ monto.value = decodeURIComponent(location.hash.slice(3)); }
+
+pinInput.addEventListener("keydown", e=>{ if(e.key==="Enter") unlock(); });
+document.body.addEventListener("submit", e=>e.preventDefault());
 </script>
 </body>
 </html>
