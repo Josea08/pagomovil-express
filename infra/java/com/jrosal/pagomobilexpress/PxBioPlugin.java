@@ -1,6 +1,7 @@
 package com.jrosal.pagomobilexpress;
 
 import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 
 import androidx.biometric.BiometricManager;
@@ -15,7 +16,6 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.security.KeyStore;
-import java.security.ProviderException;
 import java.util.Base64;
 import java.util.concurrent.Executor;
 
@@ -26,10 +26,23 @@ import javax.crypto.spec.GCMParameterSpec;
 
 /**
  * Sella un payload con una clave AES-GCM de 256 bits que vive en el Keystore
- * de Android y exige biometría fuerte (huella o rostro) para usarse tanto al
- * cifrar (activar huella en la app) como al descifrar (entrar con huella).
+ * de Android y exige biometría para usarse tanto al cifrar (activar huella
+ * en la app) como al descifrar (entrar con huella).
  * El hardware jamás expone la clave: los blobs solo descifran en este
  * teléfono y pasando la puerta biométrica.
+ *
+ * Correcciones frente a la primera versión:
+ * - unlock() nunca mostraba el BiometricPrompt: el init() de descifrado
+ *   exige autenticación y lanzaba UserNotAuthenticatedException, que el
+ *   código rechazaba directo en vez de pedir la huella. Ahora, igual que
+ *   protect(), si la clave exige autenticación se muestra el prompt y se
+ *   descifra al confirmar. Por eso entrar con huella nunca funcionó.
+ * - Tras un prompt exitoso el cifrador ya viene autorizado por el sistema:
+ *   se usa directo (doFinal), sin re-inicializarlo, que es el flujo que
+ *   documenta Android y evita un segundo fallo de autenticación.
+ * - Si se registra una huella nueva, la clave vieja queda invalidada: se
+ *   borra sola y unlock() avisa con "clave_invalida" para que la app pida
+ *   reactivar la huella en vez de dejar un blob inservible.
  */
 @CapacitorPlugin(name = "PxBio")
 public class PxBioPlugin extends Plugin {
@@ -47,7 +60,7 @@ public class PxBioPlugin extends Plugin {
             int can = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK);
             res.put("hardware", can != BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE
                     && can != BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE);
-            res.put("enrolled", can != BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED);
+            res.put("enrolled", can == BiometricManager.BIOMETRIC_SUCCESS);
         } catch (Exception e) {
             res.put("hardware", false);
             res.put("enrolled", false);
@@ -62,15 +75,16 @@ public class PxBioPlugin extends Plugin {
         String payload = call.getString("payload", null);
         if (payload == null) { call.reject("payload faltante"); return; }
         try {
+            SecretKey k = key(true);
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
             try {
-                c.init(Cipher.ENCRYPT_MODE, key(true));
-                runEncryptNow(call, c, payload); // la sesión ya pasó por biometría hoy
+                c.init(Cipher.ENCRYPT_MODE, k);
+                runEncryptNow(call, c, payload); // la clave seguía autorizada
             } catch (RuntimeException e) {
-                // la clave exige autenticación de nuevo: pedimos huella y continuamos
+                // la clave exige autenticación: pedimos huella y el cifrador
+                // autorizado por el prompt se usa directo, sin re-iniciar
                 promptThen(call, c, () -> {
                     try {
-                        c.init(Cipher.ENCRYPT_MODE, key(true));
                         runEncryptNow(call, c, payload);
                     } catch (Exception ex) { call.reject("no se pudo sellar: " + ex.getMessage()); }
                 });
@@ -97,22 +111,32 @@ public class PxBioPlugin extends Plugin {
             String[] parts = blob.split(":", 2);
             byte[] iv = b64d(parts[0]);
             byte[] sealed = b64d(parts[1]);
+            SecretKey k = key(false);
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-            c.init(Cipher.DECRYPT_MODE, key(false), new GCMParameterSpec(GCM_TAG_BITS, iv));
-
-            promptThen(call, c, () -> {
-                try {
-                    byte[] out = c.doFinal(sealed);
-                    JSObject res = new JSObject();
-                    res.put("payload", new String(out, "UTF-8"));
-                    call.resolve(res);
-                } catch (Exception ex) {
-                    call.reject("no se pudo descifrar: " + ex.getMessage());
-                }
-            });
+            try {
+                c.init(Cipher.DECRYPT_MODE, k, new GCMParameterSpec(GCM_TAG_BITS, iv));
+                runDecryptNow(call, c, sealed); // la clave seguía autorizada
+            } catch (RuntimeException e) {
+                // la clave exige biometría: mostrar el prompt y descifrar al confirmar
+                promptThen(call, c, () -> {
+                    try {
+                        runDecryptNow(call, c, sealed);
+                    } catch (Exception ex) { call.reject("no se pudo descifrar: " + ex.getMessage()); }
+                });
+            }
+        } catch (IllegalStateException e) {
+            // no hay clave (nunca se activó o quedó invalidada): hay que reactivar
+            call.reject("clave_invalida");
         } catch (Exception e) {
             call.reject("no se pudo iniciar la biometría: " + e.getMessage());
         }
+    }
+
+    private void runDecryptNow(PluginCall call, Cipher c, byte[] sealed) throws Exception {
+        byte[] out = c.doFinal(sealed);
+        JSObject res = new JSObject();
+        res.put("payload", new String(out, "UTF-8"));
+        call.resolve(res);
     }
 
     /** Muestra el BiometricPrompt con CryptoObject y ejecuta la continuación si sale bien. */
@@ -142,7 +166,7 @@ public class PxBioPlugin extends Plugin {
                 .build();
         try {
             prompt.authenticate(info, new BiometricPrompt.CryptoObject(cryptoCipher));
-        } catch (ProviderException e) {
+        } catch (Exception e) {
             call.reject("biometría no disponible: " + e.getMessage());
         }
     }
@@ -156,7 +180,15 @@ public class PxBioPlugin extends Plugin {
     private SecretKey key(boolean createIfMissing) throws Exception {
         KeyStore ks = KeyStore.getInstance(ANDROID_KEYSTORE);
         ks.load(null);
-        KeyStore.Entry entry = ks.getEntry(KEY_ALIAS, null);
+        KeyStore.Entry entry;
+        try {
+            entry = ks.getEntry(KEY_ALIAS, null);
+        } catch (KeyPermanentlyInvalidatedException e) {
+            // se registró una huella nueva: la clave vieja murió, se borra
+            // para que protect() cree una nueva al reactivar
+            try { ks.deleteEntry(KEY_ALIAS); } catch (Exception ignored) {}
+            entry = null;
+        }
         if (entry instanceof KeyStore.SecretKeyEntry) {
             return ((KeyStore.SecretKeyEntry) entry).getSecretKey();
         }

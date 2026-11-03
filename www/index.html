@@ -28,6 +28,7 @@
     background:var(--bar);color:#fff;
     padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
     display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:10;
   }
   .bar .t{font-size:16.5px;font-weight:600;}
   .bar .r{font-size:12.5px;color:#b9c6dd;}
@@ -37,6 +38,7 @@
   .card{
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     padding:14px 14px 15px;margin-bottom:12px;
+    box-shadow:0 1px 3px rgba(18,41,75,.08);
   }
   .sec-t{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
   .sec-t a{color:var(--primary);text-decoration:none;font-weight:500;font-size:13px;cursor:pointer;}
@@ -214,16 +216,6 @@
     <div class="note">Estos datos están cifrados en tu teléfono. Nadie más puede verlos y no salen del dispositivo.</div>
   </div>
   <div class="card">
-    <div class="sec-t">Accesos rápidos</div>
-    <button class="btn ghost" onclick="copyField('f_ci')">Copiar cédula</button>
-    <button class="btn ghost" onclick="copyField('f_cuenta')">Copiar número de cuenta</button>
-    <button class="btn danger-line" onclick="changePin()">Cambiar PIN</button>
-  </div>
-</section>
-
-<!-- AJUSTES -->
-<section class="page" id="page-tasa">
-  <div class="card">
     <div class="sec-t">Tasa de cambio</div>
     <label>Bs. por cada dólar (tasa BCV del día)</label>
     <input type="number" id="f_tasa" step="any" inputmode="decimal" placeholder="0,00" onchange="saveProfile()">
@@ -237,7 +229,14 @@
     <button class="btn danger-line" onclick="wipeAll()">Borrar todos los datos</button>
     <div class="note">Reinicia la app por completo. Se borra tu perfil, PIN e historial.</div>
   </div>
+  <div class="card">
+    <div class="sec-t">Accesos rápidos</div>
+    <button class="btn ghost" onclick="copyField('f_ci')">Copiar cédula</button>
+    <button class="btn ghost" onclick="copyField('f_cuenta')">Copiar número de cuenta</button>
+    <button class="btn danger-line" onclick="changePin()">Cambiar PIN</button>
+  </div>
 </section>
+
 
 </main>
 
@@ -249,10 +248,6 @@
   <button data-page="page-perfil">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1.4-3.4 4-5 7-5s5.6 1.6 7 5"/></svg>
     <span class="lbl">Mi perfil</span>
-  </button>
-  <button data-page="page-tasa">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.7-1.6L13.4 2h-2.8l-.3 2.8a7 7 0 0 0-2.7 1.6l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12"/></svg>
-    <span class="lbl">Ajustes</span>
   </button>
 </nav>
 </div>
@@ -363,6 +358,7 @@ async function bioEnable(){
     toast(e.message && /cancel/i.test(e.message) ? "Cancelado" : "No se pudo activar la huella");
   }
   renderSecurity();
+  setupBioEntry();
 }
 
 async function unlock(pinArg){
@@ -401,8 +397,15 @@ async function bioEntry(){
     const pin = JSON.parse(payload).pin;
     await unlock(pin);
   } catch(e){
-    // cancelado o falló: el usuario puede teclear el PIN
-    toast("Huella cancelada, usa tu PIN");
+    if(e && /clave_invalida/.test(e.message || "")){
+      // se registró una huella nueva: la clave vieja murió, hay que reactivar
+      localStorage.removeItem(BIO_KEY);
+      renderSecurity();
+      toast("Tu huella cambió: actívala de nuevo en Mi perfil");
+    } else {
+      // cancelado o falló: el usuario puede teclear el PIN
+      toast("Huella cancelada, usa tu PIN");
+    }
   }
   b.disabled = false;
 }
@@ -459,7 +462,7 @@ function refreshMonto(){
   const m = parseFloat(monto.value)||0;
   bigMonto.textContent = fmt(m);
   const tasa = parseFloat(profile?.f_tasa)||0;
-  usdView.textContent = m>0 ? (tasa>0 ? "≈ $"+fmt(m/tasa) : "Configura la tasa en Ajustes") : "—";
+  usdView.textContent = m>0 ? (tasa>0 ? "≈ $"+fmt(m/tasa) : "Configura la tasa en Mi perfil") : "—";
 }
 monto.addEventListener("input", refreshMonto);
 
@@ -596,7 +599,7 @@ document.querySelectorAll("nav button").forEach(b=>{
     b.classList.add("on");
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
     document.getElementById(b.dataset.page).classList.add("on");
-    if(b.dataset.page === "page-tasa") renderSecurity();
+    if(b.dataset.page === "page-perfil") renderSecurity();
     window.scrollTo({top:0});
   };
 });
